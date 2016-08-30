@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+    http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>sc.fiji</groupId>
+		<artifactId>pom-fiji</artifactId>
+		<version>26.0.0</version>
+	</parent>
+
+	<artifactId>TrackMate_trackanalysis</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+
+	<name>plugins/TrackMate_trackanalysis.jar</name>
+	<description>Basic track analysis, plugged as TrackMate modules.</description>
+
+	<developers>
+		<developer>
+			<id>tinevez</id>
+			<name>Jean-Yves Tinevez</name>
+			<email>jean-yves.tinevez@pasteur.fr</email>
+			<url>https://research.pasteur.fr/fr/member/jean-yves-tinevez/</url>
+			<organization>Institut Pasteur</organization>
+			<organizationUrl>http://www.pasteur.fr/</organizationUrl>
+			<roles>
+				<role>architect</role>
+				<role>developer</role>
+			</roles>
+			<timezone>+1</timezone>
+		</developer>
+	</developers>
+
+	<properties>
+		<imagej.app.directory>../Fiji.app/</imagej.app.directory>
+	</properties>
+
+	<repositories>
+		<!-- NB: for project parent -->
+		<repository>
+			<id>imagej.public</id>
+			<url>http://maven.imagej.net/content/groups/public</url>
+		</repository>
+	</repositories>
+
+	<scm>
+		<connection>scm:git:git://github.com/imagopole/TrackMate-TrackAnalysis</connection>
+		<developerConnection>scm:git:git@github.com:imagopole/TrackMate-TrackAnalysis</developerConnection>
+		<tag>HEAD</tag>
+		<url>scm:git:git@github.com:imagopole/TrackMate-TrackAnalysis</url>
+	</scm>
+
+	<dependencies>
+
+		<dependency>
+			<groupId>sc.fiji</groupId>
+			<artifactId>TrackMate_</artifactId>
+		</dependency>
+		
+
+
+		
+	</dependencies>
+</project>
+
