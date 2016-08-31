@@ -18,6 +18,7 @@ import fiji.plugin.trackmate.Dimension;
 import fiji.plugin.trackmate.FeatureModel;
 import fiji.plugin.trackmate.Model;
 import fiji.plugin.trackmate.Spot;
+import fiji.plugin.trackmate.graph.TimeDirectedNeighborIndex;
 import net.imglib2.multithreading.SimpleMultiThreading;
 
 @SuppressWarnings( "deprecation" )
@@ -37,15 +38,18 @@ public class BasicTrackAnalysis implements TrackAnalyzer
 
 	public static final String TRACK_LINEARITY_OF_FORWARD_PROGRESSION = "LINEARITY_OF_FORWARD_PROGRESSION";
 
-	public static final List< String > FEATURES = new ArrayList< String >( 5 );
+	public static final String TRACK_MEAN_DIRECTIONAL_CHANGE_RATE = "MEAN_DIRECTIONAL_CHANGE_RATE";
 
-	public static final Map< String, String > FEATURE_NAMES = new HashMap< String, String >( 5 );
+	public static final List< String > FEATURES = new ArrayList< String >( 6 );
 
-	public static final Map< String, String > FEATURE_SHORT_NAMES = new HashMap< String, String >( 5 );
+	public static final Map< String, String > FEATURE_NAMES = new HashMap< String, String >( 6 );
 
-	public static final Map< String, Dimension > FEATURE_DIMENSIONS = new HashMap< String, Dimension >( 5 );
+	public static final Map< String, String > FEATURE_SHORT_NAMES = new HashMap< String, String >( 6 );
 
-	public static final Map< String, Boolean > IS_INT = new HashMap< String, Boolean >( 4 );
+	public static final Map< String, Dimension > FEATURE_DIMENSIONS = new HashMap< String, Dimension >( 6 );
+
+	public static final Map< String, Boolean > IS_INT = new HashMap< String, Boolean >( 6 );
+
 
 	static
 	{
@@ -54,30 +58,35 @@ public class BasicTrackAnalysis implements TrackAnalyzer
 		FEATURES.add( TRACK_CONFINMENT_RATIO );
 		FEATURES.add( TRACK_MEAN_STRAIGHT_LINE_SPEED );
 		FEATURES.add( TRACK_LINEARITY_OF_FORWARD_PROGRESSION );
+		FEATURES.add( TRACK_MEAN_DIRECTIONAL_CHANGE_RATE );
 
 		FEATURE_NAMES.put( TRACK_TOTAL_DISTANCE_TRAVELED, "Total distance traveled" );
 		FEATURE_NAMES.put( TRACK_MAX_DISTANCE_TRAVELED, "Max distance traveled" );
 		FEATURE_NAMES.put( TRACK_CONFINMENT_RATIO, "Confinment ratio" );
 		FEATURE_NAMES.put( TRACK_MEAN_STRAIGHT_LINE_SPEED, "Mean straight line speed" );
 		FEATURE_NAMES.put( TRACK_LINEARITY_OF_FORWARD_PROGRESSION, "Linearity of forward progression" );
+		FEATURE_NAMES.put( TRACK_MEAN_DIRECTIONAL_CHANGE_RATE, "Mean directional change rate" );
 
 		FEATURE_SHORT_NAMES.put( TRACK_TOTAL_DISTANCE_TRAVELED, "Total dist." );
 		FEATURE_SHORT_NAMES.put( TRACK_MAX_DISTANCE_TRAVELED, "Max dist." );
 		FEATURE_SHORT_NAMES.put( TRACK_CONFINMENT_RATIO, "Cnfnmnt ratio" );
 		FEATURE_SHORT_NAMES.put( TRACK_MEAN_STRAIGHT_LINE_SPEED, "Mean v. line" );
 		FEATURE_SHORT_NAMES.put( TRACK_LINEARITY_OF_FORWARD_PROGRESSION, "Lin. fwd. progr." );
+		FEATURE_SHORT_NAMES.put( TRACK_MEAN_DIRECTIONAL_CHANGE_RATE, "Mean 𝛾 rate" );
 
 		FEATURE_DIMENSIONS.put( TRACK_TOTAL_DISTANCE_TRAVELED, Dimension.LENGTH );
 		FEATURE_DIMENSIONS.put( TRACK_MAX_DISTANCE_TRAVELED, Dimension.LENGTH );
 		FEATURE_DIMENSIONS.put( TRACK_CONFINMENT_RATIO, Dimension.NONE );
 		FEATURE_DIMENSIONS.put( TRACK_MEAN_STRAIGHT_LINE_SPEED, Dimension.VELOCITY );
 		FEATURE_DIMENSIONS.put( TRACK_LINEARITY_OF_FORWARD_PROGRESSION, Dimension.NONE );
+		FEATURE_DIMENSIONS.put( TRACK_MEAN_DIRECTIONAL_CHANGE_RATE, Dimension.RATE );
 
 		IS_INT.put( TRACK_TOTAL_DISTANCE_TRAVELED, Boolean.FALSE );
 		IS_INT.put( TRACK_MAX_DISTANCE_TRAVELED, Boolean.FALSE );
 		IS_INT.put( TRACK_CONFINMENT_RATIO, Boolean.FALSE );
 		IS_INT.put( TRACK_MEAN_STRAIGHT_LINE_SPEED, Boolean.FALSE );
 		IS_INT.put( TRACK_LINEARITY_OF_FORWARD_PROGRESSION, Boolean.FALSE );
+		IS_INT.put( TRACK_MEAN_DIRECTIONAL_CHANGE_RATE, Boolean.FALSE );
 	}
 
 	private int numThreads;
@@ -197,17 +206,22 @@ public class BasicTrackAnalysis implements TrackAnalyzer
 				@Override
 				public void run()
 				{
+					// Neighbor index, for predecessor retrieval.
+					final TimeDirectedNeighborIndex neighborIndex = model.getTrackModel().getDirectedNeighborIndex();
+					// Storage array for 3D angle calculation.
+					final double[] out = new double[ 3 ];
+
 					Integer trackID;
 					while ( ( trackID = queue.poll() ) != null )
 					{
 						/*
-						 * Get the first spot (lower FRAME).
+						 * Get the first spot (lowest FRAME).
 						 */
 
 						final List< Spot > spots = new ArrayList<>( model.getTrackModel().trackSpots( trackID ) );
 						Collections.sort( spots, Spot.frameComparator );
 						final Spot first = spots.get( 0 );
-
+						
 						/*
 						 * Iterate over edges.
 						 */
@@ -217,6 +231,8 @@ public class BasicTrackAnalysis implements TrackAnalyzer
 						double totalDistance = 0.;
 						double maxDistanceSq = Double.NEGATIVE_INFINITY;
 						double maxDistance = 0.;
+						double sumAngleSpeed = 0.;
+						int nAngleSpeed = 0;
 
 						for ( final DefaultWeightedEdge edge : edges )
 						{
@@ -233,6 +249,39 @@ public class BasicTrackAnalysis implements TrackAnalyzer
 								maxDistanceSq = dToFirstSq;
 								maxDistance = Math.sqrt( maxDistanceSq );
 							}
+
+							/*
+							 * Rate of directional change. We need to fetch the
+							 * previous edge, via the source.
+							 */
+
+							final Set< Spot > predecessors = neighborIndex.predecessorsOf( source );
+							if (null != predecessors && !predecessors.isEmpty())
+							{
+								/*
+								 * We take the first predecessor. The
+								 * directional change is anyway not defined in
+								 * case of branching.
+								 */
+
+								final Spot predecessor = predecessors.iterator().next();
+								
+								// Vectors.
+								final double dx1 = first.diffTo( predecessor, Spot.POSITION_X );
+								final double dy1 = first.diffTo( predecessor, Spot.POSITION_Y );
+								final double dz1 = first.diffTo( predecessor, Spot.POSITION_Z );
+
+								final double dx2 = target.diffTo( first, Spot.POSITION_X );
+								final double dy2 = target.diffTo( first, Spot.POSITION_Y );
+								final double dz2 = target.diffTo( first, Spot.POSITION_Z );
+
+								crossProduct( dx1, dy1, dz1, dx2, dy2, dz2, out );
+								final double deltaAlpha = Math.atan2( norm( out ), dotProduct( dx1, dy1, dz1, dx2, dy2, dz2 ) );
+								final double angleSpeed = deltaAlpha / target.diffTo( first, Spot.POSITION_T );
+								sumAngleSpeed += angleSpeed;
+								nAngleSpeed++;
+							}
+
 						}
 
 						/*
@@ -248,6 +297,7 @@ public class BasicTrackAnalysis implements TrackAnalyzer
 						final double confinmentRatio = netDistance / totalDistance;
 						final double meanStraightLineSpeed = netDistance / tTotal;
 						final double linearityForwardProgression = meanStraightLineSpeed / vMean;
+						final double meanAngleSpeed = sumAngleSpeed / nAngleSpeed;
 
 						// Store.
 						fm.putTrackFeature( trackID, TRACK_TOTAL_DISTANCE_TRAVELED, totalDistance );
@@ -255,6 +305,7 @@ public class BasicTrackAnalysis implements TrackAnalyzer
 						fm.putTrackFeature( trackID, TRACK_CONFINMENT_RATIO, confinmentRatio );
 						fm.putTrackFeature( trackID, TRACK_MEAN_STRAIGHT_LINE_SPEED, meanStraightLineSpeed );
 						fm.putTrackFeature( trackID, TRACK_LINEARITY_OF_FORWARD_PROGRESSION, linearityForwardProgression );
+						fm.putTrackFeature( trackID, TRACK_MEAN_DIRECTIONAL_CHANGE_RATE, meanAngleSpeed );
 
 					}
 				}
@@ -265,5 +316,27 @@ public class BasicTrackAnalysis implements TrackAnalyzer
 		SimpleMultiThreading.startAndJoin( threads );
 		final long end = System.currentTimeMillis();
 		processingTime = end - start;
+	}
+
+	private static final double dotProduct( final double dx1, final double dy1, final double dz1, final double dx2, final double dy2, final double dz2 )
+	{
+		return dx1 * dx2 + dy1 * dy2 + dz1 * dz2;
+	}
+
+	private static final void crossProduct( final double dx1, final double dy1, final double dz1, final double dx2, final double dy2, final double dz2, final double[] out )
+	{
+		out[ 0 ] = dy1 * dz2 - dz1 * dy2;
+		out[ 1 ] = dz1 * dx2 - dx1 * dz2;
+		out[ 2 ] = dx1 * dy2 - dy1 * dx2;
+	}
+
+	private static final double norm( final double[] v )
+	{
+		double sumSq = 0.;
+		for ( final double d : v )
+		{
+			sumSq += d * d;
+		}
+		return Math.sqrt( sumSq );
 	}
 }
