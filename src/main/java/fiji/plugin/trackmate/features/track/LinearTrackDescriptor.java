@@ -18,7 +18,7 @@ import fiji.plugin.trackmate.Dimension;
 import fiji.plugin.trackmate.FeatureModel;
 import fiji.plugin.trackmate.Model;
 import fiji.plugin.trackmate.Spot;
-import fiji.plugin.trackmate.graph.TimeDirectedNeighborIndex;
+import fiji.plugin.trackmate.features.edge.LinearTrackEdgeStatistics;
 import net.imglib2.multithreading.SimpleMultiThreading;
 
 @SuppressWarnings( "deprecation" )
@@ -206,11 +206,6 @@ public class LinearTrackDescriptor implements TrackAnalyzer
 				@Override
 				public void run()
 				{
-					// Neighbor index, for predecessor retrieval.
-					final TimeDirectedNeighborIndex neighborIndex = model.getTrackModel().getDirectedNeighborIndex();
-					// Storage array for 3D angle calculation.
-					final double[] out = new double[ 3 ];
-
 					Integer trackID;
 					while ( ( trackID = queue.poll() ) != null )
 					{
@@ -251,37 +246,16 @@ public class LinearTrackDescriptor implements TrackAnalyzer
 							}
 
 							/*
-							 * Rate of directional change. We need to fetch the
-							 * previous edge, via the source.
+							 * Mean rate of directional change. We depend on the
+							 * edge feature
 							 */
 
-							final Set< Spot > predecessors = neighborIndex.predecessorsOf( source );
-							if (null != predecessors && !predecessors.isEmpty())
+							final Double val = fm.getEdgeFeature( edge, LinearTrackEdgeStatistics.DIRECTIONAL_CHANGE_RATE );
+							if ( null != val && !val.isNaN() )
 							{
-								/*
-								 * We take the first predecessor. The
-								 * directional change is anyway not defined in
-								 * case of branching.
-								 */
-
-								final Spot predecessor = predecessors.iterator().next();
-								
-								// Vectors.
-								final double dx1 = first.diffTo( predecessor, Spot.POSITION_X );
-								final double dy1 = first.diffTo( predecessor, Spot.POSITION_Y );
-								final double dz1 = first.diffTo( predecessor, Spot.POSITION_Z );
-
-								final double dx2 = target.diffTo( first, Spot.POSITION_X );
-								final double dy2 = target.diffTo( first, Spot.POSITION_Y );
-								final double dz2 = target.diffTo( first, Spot.POSITION_Z );
-
-								crossProduct( dx1, dy1, dz1, dx2, dy2, dz2, out );
-								final double deltaAlpha = Math.atan2( norm( out ), dotProduct( dx1, dy1, dz1, dx2, dy2, dz2 ) );
-								final double angleSpeed = deltaAlpha / target.diffTo( first, Spot.POSITION_T );
-								sumAngleSpeed += angleSpeed;
+								sumAngleSpeed += val.doubleValue();
 								nAngleSpeed++;
 							}
-
 						}
 
 						/*
@@ -316,27 +290,5 @@ public class LinearTrackDescriptor implements TrackAnalyzer
 		SimpleMultiThreading.startAndJoin( threads );
 		final long end = System.currentTimeMillis();
 		processingTime = end - start;
-	}
-
-	private static final double dotProduct( final double dx1, final double dy1, final double dz1, final double dx2, final double dy2, final double dz2 )
-	{
-		return dx1 * dx2 + dy1 * dy2 + dz1 * dz2;
-	}
-
-	private static final void crossProduct( final double dx1, final double dy1, final double dz1, final double dx2, final double dy2, final double dz2, final double[] out )
-	{
-		out[ 0 ] = dy1 * dz2 - dz1 * dy2;
-		out[ 1 ] = dz1 * dx2 - dx1 * dz2;
-		out[ 2 ] = dx1 * dy2 - dy1 * dx2;
-	}
-
-	private static final double norm( final double[] v )
-	{
-		double sumSq = 0.;
-		for ( final double d : v )
-		{
-			sumSq += d * d;
-		}
-		return Math.sqrt( sumSq );
 	}
 }
