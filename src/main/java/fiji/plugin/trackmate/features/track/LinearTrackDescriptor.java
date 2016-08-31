@@ -23,10 +23,10 @@ import net.imglib2.multithreading.SimpleMultiThreading;
 
 @SuppressWarnings( "deprecation" )
 @Plugin( type = TrackAnalyzer.class, priority = 1d )
-public class BasicTrackAnalysis implements TrackAnalyzer
+public class LinearTrackDescriptor implements TrackAnalyzer
 {
 
-	public static final String KEY = "Track analysis";
+	public static final String KEY = "Linear track analysis";
 
 	public static final String TRACK_TOTAL_DISTANCE_TRAVELED = "TOTAL_DISTANCE_TRAVELED";
 
@@ -93,7 +93,7 @@ public class BasicTrackAnalysis implements TrackAnalyzer
 
 	private long processingTime;
 
-	public BasicTrackAnalysis()
+	public LinearTrackDescriptor()
 	{
 		setNumThreads();
 	}
