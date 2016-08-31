@@ -188,7 +188,10 @@ public class LinearTrackEdgeStatistics implements EdgeAnalyzer
 
 						final Set< Spot > predecessors = neighborIndex.predecessorsOf( source );
 						if (null == predecessors || predecessors.size() != 1)
+						{
+							featureModel.putEdgeFeature( edge, DIRECTIONAL_CHANGE_RATE, Double.NaN );
 							continue;
+						}
 
 						/*
 						 * We take the first predecessor. The
@@ -209,7 +212,6 @@ public class LinearTrackEdgeStatistics implements EdgeAnalyzer
 						crossProduct( dx1, dy1, dz1, dx2, dy2, dz2, out );
 						final double deltaAlpha = Math.atan2( norm( out ), dotProduct( dx1, dy1, dz1, dx2, dy2, dz2 ) );
 						final double angleSpeed = deltaAlpha / target.diffTo( source, Spot.POSITION_T );
-
 						featureModel.putEdgeFeature( edge, DIRECTIONAL_CHANGE_RATE, Double.valueOf( angleSpeed ) );
 					}
 
