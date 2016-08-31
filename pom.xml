@@ -32,11 +32,12 @@
 		</developer>
 	</developers>
 
-	<properties>
+ 	<properties>
+		<!-- Target Fiji dir for clean upload. -->
 		<imagej.app.directory>../Fiji.app/</imagej.app.directory>
 	</properties>
 
-	<repositories>
+ 	<repositories>
 		<!-- NB: for project parent -->
 		<repository>
 			<id>imagej.public</id>
