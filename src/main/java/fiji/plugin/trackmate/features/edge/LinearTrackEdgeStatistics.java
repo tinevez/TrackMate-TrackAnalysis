@@ -179,8 +179,17 @@ public class LinearTrackEdgeStatistics implements EdgeAnalyzer
 					DefaultWeightedEdge edge;
 					while ( ( edge = queue.poll() ) != null )
 					{
-						final Spot source = model.getTrackModel().getEdgeSource( edge );
-						final Spot target = model.getTrackModel().getEdgeTarget( edge );
+						Spot source = model.getTrackModel().getEdgeSource( edge );
+						Spot target = model.getTrackModel().getEdgeTarget( edge );
+
+						// Some edges maybe improperly oriented.
+						if ( source.diffTo( target, Spot.FRAME ) > 0 )
+						{
+							final Spot tmp = target;
+							target = source;
+							source = tmp;
+						}
+
 						/*
 						 * Rate of directional change. We need to fetch the
 						 * previous edge, via the source.
@@ -212,6 +221,7 @@ public class LinearTrackEdgeStatistics implements EdgeAnalyzer
 						crossProduct( dx1, dy1, dz1, dx2, dy2, dz2, out );
 						final double deltaAlpha = Math.atan2( norm( out ), dotProduct( dx1, dy1, dz1, dx2, dy2, dz2 ) );
 						final double angleSpeed = deltaAlpha / target.diffTo( source, Spot.POSITION_T );
+
 						featureModel.putEdgeFeature( edge, DIRECTIONAL_CHANGE_RATE, Double.valueOf( angleSpeed ) );
 					}
 
@@ -223,7 +233,6 @@ public class LinearTrackEdgeStatistics implements EdgeAnalyzer
 		SimpleMultiThreading.startAndJoin( threads );
 		final long end = System.currentTimeMillis();
 		processingTime = end - start;
-
 	}
 
 
