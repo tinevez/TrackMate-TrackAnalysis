@@ -5,9 +5,10 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<parent>
-		<groupId>sc.fiji</groupId>
-		<artifactId>pom-fiji</artifactId>
-		<version>26.0.0</version>
+		<groupId>org.scijava</groupId>
+		<artifactId>pom-scijava</artifactId>
+		<version>24.2.0</version>
+		<relativePath />
 	</parent>
 
 	<artifactId>TrackMate_trackanalysis</artifactId>
