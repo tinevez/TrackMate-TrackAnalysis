@@ -11,6 +11,8 @@ import java.util.concurrent.ArrayBlockingQueue;
 
 import javax.swing.ImageIcon;
 
+import net.imglib2.multithreading.SimpleMultiThreading;
+
 import org.jgrapht.graph.DefaultWeightedEdge;
 import org.scijava.plugin.Plugin;
 
@@ -19,7 +21,6 @@ import fiji.plugin.trackmate.FeatureModel;
 import fiji.plugin.trackmate.Model;
 import fiji.plugin.trackmate.Spot;
 import fiji.plugin.trackmate.features.edge.LinearTrackEdgeStatistics;
-import net.imglib2.multithreading.SimpleMultiThreading;
 
 @SuppressWarnings( "deprecation" )
 @Plugin( type = TrackAnalyzer.class, priority = 1d )
@@ -40,16 +41,21 @@ public class LinearTrackDescriptor implements TrackAnalyzer
 
 	public static final String TRACK_MEAN_DIRECTIONAL_CHANGE_RATE = "MEAN_DIRECTIONAL_CHANGE_RATE";
 
-	public static final List< String > FEATURES = new ArrayList< String >( 6 );
+	public static final String TOTAL_ABSOLUTE_ANGLE_XY = "TOTAL_ABSOLUTE_ANGLE_XY";
 
-	public static final Map< String, String > FEATURE_NAMES = new HashMap< String, String >( 6 );
+	public static final String TOTAL_ABSOLUTE_ANGLE_YZ = "TOTAL_ABSOLUTE_ANGLE_YZ";
 
-	public static final Map< String, String > FEATURE_SHORT_NAMES = new HashMap< String, String >( 6 );
+	public static final String TOTAL_ABSOLUTE_ANGLE_ZX = "TOTAL_ABSOLUTE_ANGLE_ZX";
 
-	public static final Map< String, Dimension > FEATURE_DIMENSIONS = new HashMap< String, Dimension >( 6 );
+	public static final List< String > FEATURES = new ArrayList<>( 9 );
 
-	public static final Map< String, Boolean > IS_INT = new HashMap< String, Boolean >( 6 );
+	public static final Map< String, String > FEATURE_NAMES = new HashMap<>( 9 );
 
+	public static final Map< String, String > FEATURE_SHORT_NAMES = new HashMap<>( 9 );
+
+	public static final Map< String, Dimension > FEATURE_DIMENSIONS = new HashMap<>( 9 );
+
+	public static final Map< String, Boolean > IS_INT = new HashMap<>( 9 );
 
 	static
 	{
@@ -59,6 +65,9 @@ public class LinearTrackDescriptor implements TrackAnalyzer
 		FEATURES.add( TRACK_MEAN_STRAIGHT_LINE_SPEED );
 		FEATURES.add( TRACK_LINEARITY_OF_FORWARD_PROGRESSION );
 		FEATURES.add( TRACK_MEAN_DIRECTIONAL_CHANGE_RATE );
+		FEATURES.add( TOTAL_ABSOLUTE_ANGLE_XY );
+		FEATURES.add( TOTAL_ABSOLUTE_ANGLE_YZ );
+		FEATURES.add( TOTAL_ABSOLUTE_ANGLE_ZX );
 
 		FEATURE_NAMES.put( TRACK_TOTAL_DISTANCE_TRAVELED, "Total distance traveled" );
 		FEATURE_NAMES.put( TRACK_MAX_DISTANCE_TRAVELED, "Max distance traveled" );
@@ -66,6 +75,9 @@ public class LinearTrackDescriptor implements TrackAnalyzer
 		FEATURE_NAMES.put( TRACK_MEAN_STRAIGHT_LINE_SPEED, "Mean straight line speed" );
 		FEATURE_NAMES.put( TRACK_LINEARITY_OF_FORWARD_PROGRESSION, "Linearity of forward progression" );
 		FEATURE_NAMES.put( TRACK_MEAN_DIRECTIONAL_CHANGE_RATE, "Mean directional change rate" );
+		FEATURE_NAMES.put( TOTAL_ABSOLUTE_ANGLE_XY, "Absolute angle in xy plane" );
+		FEATURE_NAMES.put( TOTAL_ABSOLUTE_ANGLE_YZ, "Absolute angle in yz plane" );
+		FEATURE_NAMES.put( TOTAL_ABSOLUTE_ANGLE_ZX, "Absolute angle in zx plane" );
 
 		FEATURE_SHORT_NAMES.put( TRACK_TOTAL_DISTANCE_TRAVELED, "Total dist." );
 		FEATURE_SHORT_NAMES.put( TRACK_MAX_DISTANCE_TRAVELED, "Max dist." );
@@ -73,6 +85,9 @@ public class LinearTrackDescriptor implements TrackAnalyzer
 		FEATURE_SHORT_NAMES.put( TRACK_MEAN_STRAIGHT_LINE_SPEED, "Mean v. line" );
 		FEATURE_SHORT_NAMES.put( TRACK_LINEARITY_OF_FORWARD_PROGRESSION, "Lin. fwd. progr." );
 		FEATURE_SHORT_NAMES.put( TRACK_MEAN_DIRECTIONAL_CHANGE_RATE, "Mean 𝛾 rate" );
+		FEATURE_SHORT_NAMES.put( TOTAL_ABSOLUTE_ANGLE_XY, "Abs. angle xy" );
+		FEATURE_SHORT_NAMES.put( TOTAL_ABSOLUTE_ANGLE_YZ, "Abs. angle yz" );
+		FEATURE_SHORT_NAMES.put( TOTAL_ABSOLUTE_ANGLE_ZX, "Abs. angle zx" );
 
 		FEATURE_DIMENSIONS.put( TRACK_TOTAL_DISTANCE_TRAVELED, Dimension.LENGTH );
 		FEATURE_DIMENSIONS.put( TRACK_MAX_DISTANCE_TRAVELED, Dimension.LENGTH );
@@ -80,6 +95,9 @@ public class LinearTrackDescriptor implements TrackAnalyzer
 		FEATURE_DIMENSIONS.put( TRACK_MEAN_STRAIGHT_LINE_SPEED, Dimension.VELOCITY );
 		FEATURE_DIMENSIONS.put( TRACK_LINEARITY_OF_FORWARD_PROGRESSION, Dimension.NONE );
 		FEATURE_DIMENSIONS.put( TRACK_MEAN_DIRECTIONAL_CHANGE_RATE, Dimension.RATE );
+		FEATURE_DIMENSIONS.put( TOTAL_ABSOLUTE_ANGLE_XY, Dimension.ANGLE );
+		FEATURE_DIMENSIONS.put( TOTAL_ABSOLUTE_ANGLE_YZ, Dimension.ANGLE );
+		FEATURE_DIMENSIONS.put( TOTAL_ABSOLUTE_ANGLE_ZX, Dimension.ANGLE );
 
 		IS_INT.put( TRACK_TOTAL_DISTANCE_TRAVELED, Boolean.FALSE );
 		IS_INT.put( TRACK_MAX_DISTANCE_TRAVELED, Boolean.FALSE );
@@ -87,6 +105,9 @@ public class LinearTrackDescriptor implements TrackAnalyzer
 		IS_INT.put( TRACK_MEAN_STRAIGHT_LINE_SPEED, Boolean.FALSE );
 		IS_INT.put( TRACK_LINEARITY_OF_FORWARD_PROGRESSION, Boolean.FALSE );
 		IS_INT.put( TRACK_MEAN_DIRECTIONAL_CHANGE_RATE, Boolean.FALSE );
+		IS_INT.put( TOTAL_ABSOLUTE_ANGLE_XY, Boolean.FALSE );
+		IS_INT.put( TOTAL_ABSOLUTE_ANGLE_YZ, Boolean.FALSE );
+		IS_INT.put( TOTAL_ABSOLUTE_ANGLE_ZX, Boolean.FALSE );
 	}
 
 	private int numThreads;
@@ -193,9 +214,10 @@ public class LinearTrackDescriptor implements TrackAnalyzer
 	public void process( final Collection< Integer > trackIDs, final Model model )
 	{
 
-		if ( trackIDs.isEmpty() ) { return; }
+		if ( trackIDs.isEmpty() )
+		{ return; }
 
-		final ArrayBlockingQueue< Integer > queue = new ArrayBlockingQueue< Integer >( trackIDs.size(), false, trackIDs );
+		final ArrayBlockingQueue< Integer > queue = new ArrayBlockingQueue<>( trackIDs.size(), false, trackIDs );
 		final FeatureModel fm = model.getFeatureModel();
 
 		final Thread[] threads = SimpleMultiThreading.newThreads( numThreads );
@@ -216,7 +238,7 @@ public class LinearTrackDescriptor implements TrackAnalyzer
 						final List< Spot > spots = new ArrayList<>( model.getTrackModel().trackSpots( trackID ) );
 						Collections.sort( spots, Spot.frameComparator );
 						final Spot first = spots.get( 0 );
-						
+
 						/*
 						 * Iterate over edges.
 						 */
@@ -228,6 +250,9 @@ public class LinearTrackDescriptor implements TrackAnalyzer
 						double maxDistance = 0.;
 						double sumAngleSpeed = 0.;
 						int nAngleSpeed = 0;
+						double dx = 0;
+						double dy = 0;
+						double dz = 0;
 
 						for ( final DefaultWeightedEdge edge : edges )
 						{
@@ -256,6 +281,10 @@ public class LinearTrackDescriptor implements TrackAnalyzer
 								sumAngleSpeed += val.doubleValue();
 								nAngleSpeed++;
 							}
+
+							dx += target.getDoublePosition( 0 ) - source.getDoublePosition( 0 );
+							dy += target.getDoublePosition( 1 ) - source.getDoublePosition( 1 );
+							dz += target.getDoublePosition( 2 ) - source.getDoublePosition( 2 );
 						}
 
 						/*
@@ -273,6 +302,11 @@ public class LinearTrackDescriptor implements TrackAnalyzer
 						final double linearityForwardProgression = meanStraightLineSpeed / vMean;
 						final double meanAngleSpeed = sumAngleSpeed / nAngleSpeed;
 
+						// Angle features.
+						final double angleXY = Math.atan2( dy, dx );
+						final double angleYZ = Math.atan2( dz, dy );
+						final double angleZX = Math.atan2( dx, dz );
+
 						// Store.
 						fm.putTrackFeature( trackID, TRACK_TOTAL_DISTANCE_TRAVELED, totalDistance );
 						fm.putTrackFeature( trackID, TRACK_MAX_DISTANCE_TRAVELED, maxDistance );
@@ -280,7 +314,9 @@ public class LinearTrackDescriptor implements TrackAnalyzer
 						fm.putTrackFeature( trackID, TRACK_MEAN_STRAIGHT_LINE_SPEED, meanStraightLineSpeed );
 						fm.putTrackFeature( trackID, TRACK_LINEARITY_OF_FORWARD_PROGRESSION, linearityForwardProgression );
 						fm.putTrackFeature( trackID, TRACK_MEAN_DIRECTIONAL_CHANGE_RATE, meanAngleSpeed );
-
+						fm.putTrackFeature( trackID, TOTAL_ABSOLUTE_ANGLE_XY, angleXY );
+						fm.putTrackFeature( trackID, TOTAL_ABSOLUTE_ANGLE_YZ, angleYZ );
+						fm.putTrackFeature( trackID, TOTAL_ABSOLUTE_ANGLE_ZX, angleZX );
 					}
 				}
 			};
