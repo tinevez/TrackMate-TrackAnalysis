@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>org.scijava</groupId>
 		<artifactId>pom-scijava</artifactId>
-		<version>26.0.0</version>
+		<version>28.0.0</version>
 		<relativePath />
 	</parent>
 
@@ -46,6 +46,11 @@
 			<url>https://imagej.net/User:Rueden</url>
 			<properties><id>ctrueden</id></properties>
 		</contributor>
+		<contributor>
+			<name>Jan Eglinger</name>
+			<url>https://imagej.net/User:Eglinger</url>
+			<properties><id>imagejan</id></properties>
+		</contributor>
 	</contributors>
 
 	<mailingLists>
@@ -77,9 +82,37 @@
 		<license.copyrightOwners>Fiji developers.</license.copyrightOwners>
 		<license.projectName>Fiji distribution of ImageJ for the life sciences.</license.projectName>
 
+		<!-- https://github.com/scijava/scijava-coding-style -->
+		<scijava.coding-style>imglib2</scijava.coding-style>
+
 		<!-- NB: Deploy releases to the SciJava Maven repository. -->
 		<releaseProfiles>deploy-to-scijava</releaseProfiles>
 	</properties>
+
+	<dependencies>
+		<dependency>
+			<groupId>sc.fiji</groupId>
+			<artifactId>TrackMate_</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.scijava</groupId>
+			<artifactId>scijava-common</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>net.imglib2</groupId>
+			<artifactId>imglib2-algorithm</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.jgrapht</groupId>
+			<artifactId>jgrapht-core</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<scope>test</scope>
+		</dependency>
+	</dependencies>
 
 	<repositories>
 		<repository>
@@ -87,11 +120,4 @@
 			<url>https://maven.scijava.org/content/groups/public</url>
 		</repository>
 	</repositories>
-
-	<dependencies>
-		<dependency>
-			<groupId>sc.fiji</groupId>
-			<artifactId>TrackMate_</artifactId>
-		</dependency>
-	</dependencies>
 </project>

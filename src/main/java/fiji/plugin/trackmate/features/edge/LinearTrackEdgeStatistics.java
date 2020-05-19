@@ -10,6 +10,8 @@ import java.util.concurrent.ArrayBlockingQueue;
 
 import javax.swing.ImageIcon;
 
+import net.imglib2.multithreading.SimpleMultiThreading;
+
 import org.jgrapht.graph.DefaultWeightedEdge;
 import org.scijava.plugin.Plugin;
 
@@ -19,7 +21,6 @@ import fiji.plugin.trackmate.Model;
 import fiji.plugin.trackmate.Spot;
 import fiji.plugin.trackmate.features.edges.EdgeAnalyzer;
 import fiji.plugin.trackmate.graph.TimeDirectedNeighborIndex;
-import net.imglib2.multithreading.SimpleMultiThreading;
 
 @SuppressWarnings( "deprecation" )
 @Plugin( type = EdgeAnalyzer.class )
@@ -30,27 +31,48 @@ public class LinearTrackEdgeStatistics implements EdgeAnalyzer
 
 	public static final String DIRECTIONAL_CHANGE_RATE = "DIRECTIONAL_CHANGE_RATE";
 
-	public static final List< String > FEATURES = new ArrayList< String >( 1 );
+	public static final String ABSOLUTE_ANGLE_XY = "ABSOLUTE_ANGLE_XY";
 
-	public static final Map< String, String > FEATURE_NAMES = new HashMap< String, String >( 1 );
+	public static final String ABSOLUTE_ANGLE_YZ = "ABSOLUTE_ANGLE_YZ";
 
-	public static final Map< String, String > FEATURE_SHORT_NAMES = new HashMap< String, String >( 1 );
+	public static final String ABSOLUTE_ANGLE_ZX = "ABSOLUTE_ANGLE_ZX";
 
-	public static final Map< String, Dimension > FEATURE_DIMENSIONS = new HashMap< String, Dimension >( 1 );
+	public static final List< String > FEATURES = new ArrayList<>( 4 );
 
-	public static final Map< String, Boolean > IS_INT = new HashMap< String, Boolean >( 1 );
+	public static final Map< String, String > FEATURE_NAMES = new HashMap<>( 4 );
+
+	public static final Map< String, String > FEATURE_SHORT_NAMES = new HashMap<>( 4 );
+
+	public static final Map< String, Dimension > FEATURE_DIMENSIONS = new HashMap<>( 4 );
+
+	public static final Map< String, Boolean > IS_INT = new HashMap<>( 4 );
 
 	static
 	{
 		FEATURES.add( DIRECTIONAL_CHANGE_RATE );
+		FEATURES.add( ABSOLUTE_ANGLE_XY );
+		FEATURES.add( ABSOLUTE_ANGLE_YZ );
+		FEATURES.add( ABSOLUTE_ANGLE_ZX );
 
 		FEATURE_NAMES.put( DIRECTIONAL_CHANGE_RATE, "Directional change rate" );
+		FEATURE_NAMES.put( ABSOLUTE_ANGLE_XY, "Absolute angle in xy plane" );
+		FEATURE_NAMES.put( ABSOLUTE_ANGLE_YZ, "Absolute angle in yz plane" );
+		FEATURE_NAMES.put( ABSOLUTE_ANGLE_ZX, "Absolute angle in zx plane" );
 
 		FEATURE_SHORT_NAMES.put( DIRECTIONAL_CHANGE_RATE, "𝛾 rate" );
+		FEATURE_SHORT_NAMES.put( ABSOLUTE_ANGLE_XY, "Angle xy" );
+		FEATURE_SHORT_NAMES.put( ABSOLUTE_ANGLE_YZ, "Angle yz" );
+		FEATURE_SHORT_NAMES.put( ABSOLUTE_ANGLE_ZX, "Angle zx" );
 
 		FEATURE_DIMENSIONS.put( DIRECTIONAL_CHANGE_RATE, Dimension.RATE );
+		FEATURE_DIMENSIONS.put( ABSOLUTE_ANGLE_XY, Dimension.ANGLE );
+		FEATURE_DIMENSIONS.put( ABSOLUTE_ANGLE_YZ, Dimension.ANGLE );
+		FEATURE_DIMENSIONS.put( ABSOLUTE_ANGLE_ZX, Dimension.ANGLE );
 
 		IS_INT.put( DIRECTIONAL_CHANGE_RATE, Boolean.FALSE );
+		IS_INT.put( ABSOLUTE_ANGLE_XY, Boolean.FALSE );
+		IS_INT.put( ABSOLUTE_ANGLE_YZ, Boolean.FALSE );
+		IS_INT.put( ABSOLUTE_ANGLE_ZX, Boolean.FALSE );
 	}
 
 	private int numThreads;
@@ -153,17 +175,17 @@ public class LinearTrackEdgeStatistics implements EdgeAnalyzer
 		return true;
 	}
 
-
 	@Override
 	public void process( final Collection< DefaultWeightedEdge > edges, final Model model )
 	{
-		if ( edges.isEmpty() ) { return; }
+		if ( edges.isEmpty() )
+		{ return; }
 
 		final FeatureModel featureModel = model.getFeatureModel();
 		// Neighbor index, for predecessor retrieval.
 		final TimeDirectedNeighborIndex neighborIndex = model.getTrackModel().getDirectedNeighborIndex();
 
-		final ArrayBlockingQueue< DefaultWeightedEdge > queue = new ArrayBlockingQueue< DefaultWeightedEdge >( edges.size(), false, edges );
+		final ArrayBlockingQueue< DefaultWeightedEdge > queue = new ArrayBlockingQueue<>( edges.size(), false, edges );
 
 		final Thread[] threads = SimpleMultiThreading.newThreads( numThreads );
 		for ( int i = 0; i < threads.length; i++ )
@@ -196,16 +218,15 @@ public class LinearTrackEdgeStatistics implements EdgeAnalyzer
 						 */
 
 						final Set< Spot > predecessors = neighborIndex.predecessorsOf( source );
-						if (null == predecessors || predecessors.size() != 1)
+						if ( null == predecessors || predecessors.size() != 1 )
 						{
 							featureModel.putEdgeFeature( edge, DIRECTIONAL_CHANGE_RATE, Double.NaN );
 							continue;
 						}
 
 						/*
-						 * We take the first predecessor. The
-						 * directional change is anyway not defined in
-						 * case of branching.
+						 * We take the first predecessor. The directional change
+						 * is anyway not defined in case of branching.
 						 */
 						final Spot predecessor = predecessors.iterator().next();
 
@@ -222,7 +243,14 @@ public class LinearTrackEdgeStatistics implements EdgeAnalyzer
 						final double deltaAlpha = Math.atan2( norm( out ), dotProduct( dx1, dy1, dz1, dx2, dy2, dz2 ) );
 						final double angleSpeed = deltaAlpha / target.diffTo( source, Spot.POSITION_T );
 
+						final double angleXY = Math.atan2( dy2, dx2 );
+						final double angleYZ = Math.atan2( dz2, dy2 );
+						final double angleZX = Math.atan2( dx2, dz2 );
+
 						featureModel.putEdgeFeature( edge, DIRECTIONAL_CHANGE_RATE, Double.valueOf( angleSpeed ) );
+						featureModel.putEdgeFeature( edge, ABSOLUTE_ANGLE_XY, Double.valueOf( angleXY ) );
+						featureModel.putEdgeFeature( edge, ABSOLUTE_ANGLE_YZ, Double.valueOf( angleYZ ) );
+						featureModel.putEdgeFeature( edge, ABSOLUTE_ANGLE_ZX, Double.valueOf( angleZX ) );
 					}
 
 				}
@@ -234,7 +262,6 @@ public class LinearTrackEdgeStatistics implements EdgeAnalyzer
 		final long end = System.currentTimeMillis();
 		processingTime = end - start;
 	}
-
 
 	private static final double dotProduct( final double dx1, final double dy1, final double dz1, final double dx2, final double dy2, final double dz2 )
 	{
