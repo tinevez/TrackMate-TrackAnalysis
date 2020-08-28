@@ -10,6 +10,7 @@ import fiji.plugin.trackmate.Model;
 import fiji.plugin.trackmate.Settings;
 import fiji.plugin.trackmate.Spot;
 import fiji.plugin.trackmate.features.ModelFeatureUpdater;
+import fiji.plugin.trackmate.providers.TrackAnalyzerProvider;
 
 public class LinearTrackDescriptorTest
 {
@@ -21,11 +22,8 @@ public class LinearTrackDescriptorTest
 	{
 		model = new Model();
 		Settings settings = new Settings();
-		settings.addTrackAnalyzer( new TrackIndexAnalyzer() );
-		settings.addTrackAnalyzer( new TrackDurationAnalyzer() );
-		settings.addTrackAnalyzer( new TrackSpeedStatisticsAnalyzer() );
-		settings.addTrackAnalyzer( new LinearTrackDescriptor() );
-		// settings.addEdgeAnalyzer( new LinearTrackEdgeStatistics() );
+		// NB: populate TrackAnalyzers in the order of SciJava priority
+		populateTrackAnalyzers(settings);
 		new ModelFeatureUpdater( model, settings );
 
 		model.beginUpdate();
@@ -34,6 +32,15 @@ public class LinearTrackDescriptorTest
 		double[][] track2points = new double[][] { { 4, 2, 0 }, { 6, 2, 0 }, { 8, 2, 0 }, { 9, 2, 0 }, { 10, 8, 0 } };
 		createTrack( track2points );
 		model.endUpdate();
+	}
+
+	private void populateTrackAnalyzers( Settings s )
+	{
+		TrackAnalyzerProvider trackAnalyzerProvider = new TrackAnalyzerProvider();
+		for ( String key : trackAnalyzerProvider.getKeys() )
+		{
+			s.addTrackAnalyzer( trackAnalyzerProvider.getFactory( key ) );
+		}
 	}
 
 	private void createTrack( double[][] points )
