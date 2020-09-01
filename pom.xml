@@ -9,6 +9,7 @@
 		<relativePath />
 	</parent>
 
+	<groupId>sc.fiji</groupId>
 	<artifactId>TrackMate_trackanalysis</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 
