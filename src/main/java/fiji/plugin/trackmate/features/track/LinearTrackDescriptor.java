@@ -14,6 +14,7 @@ import javax.swing.ImageIcon;
 import net.imglib2.multithreading.SimpleMultiThreading;
 
 import org.jgrapht.graph.DefaultWeightedEdge;
+import org.scijava.Priority;
 import org.scijava.plugin.Plugin;
 
 import fiji.plugin.trackmate.Dimension;
@@ -23,7 +24,7 @@ import fiji.plugin.trackmate.Spot;
 import fiji.plugin.trackmate.features.edge.LinearTrackEdgeStatistics;
 
 @SuppressWarnings( "deprecation" )
-@Plugin( type = TrackAnalyzer.class, priority = 1d )
+@Plugin( type = TrackAnalyzer.class, priority = Priority.LOW )
 public class LinearTrackDescriptor implements TrackAnalyzer
 {
 
