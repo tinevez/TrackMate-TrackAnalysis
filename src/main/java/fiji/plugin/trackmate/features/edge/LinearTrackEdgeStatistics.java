@@ -10,8 +10,6 @@ import java.util.concurrent.ArrayBlockingQueue;
 
 import javax.swing.ImageIcon;
 
-import net.imglib2.multithreading.SimpleMultiThreading;
-
 import org.jgrapht.graph.DefaultWeightedEdge;
 import org.scijava.plugin.Plugin;
 
@@ -21,6 +19,7 @@ import fiji.plugin.trackmate.Model;
 import fiji.plugin.trackmate.Spot;
 import fiji.plugin.trackmate.features.edges.EdgeAnalyzer;
 import fiji.plugin.trackmate.graph.TimeDirectedNeighborIndex;
+import net.imglib2.multithreading.SimpleMultiThreading;
 
 @SuppressWarnings( "deprecation" )
 @Plugin( type = EdgeAnalyzer.class )
@@ -213,6 +212,22 @@ public class LinearTrackEdgeStatistics implements EdgeAnalyzer
 						}
 
 						/*
+						 * Edge absolute angle.
+						 */
+
+						final double dx2 = target.diffTo( source, Spot.POSITION_X );
+						final double dy2 = target.diffTo( source, Spot.POSITION_Y );
+						final double dz2 = target.diffTo( source, Spot.POSITION_Z );
+
+						final double angleXY = Math.atan2( dy2, dx2 );
+						final double angleYZ = Math.atan2( dz2, dy2 );
+						final double angleZX = Math.atan2( dx2, dz2 );
+
+						featureModel.putEdgeFeature( edge, ABSOLUTE_ANGLE_XY, Double.valueOf( angleXY ) );
+						featureModel.putEdgeFeature( edge, ABSOLUTE_ANGLE_YZ, Double.valueOf( angleYZ ) );
+						featureModel.putEdgeFeature( edge, ABSOLUTE_ANGLE_ZX, Double.valueOf( angleZX ) );
+
+						/*
 						 * Rate of directional change. We need to fetch the
 						 * previous edge, via the source.
 						 */
@@ -235,22 +250,12 @@ public class LinearTrackEdgeStatistics implements EdgeAnalyzer
 						final double dy1 = source.diffTo( predecessor, Spot.POSITION_Y );
 						final double dz1 = source.diffTo( predecessor, Spot.POSITION_Z );
 
-						final double dx2 = target.diffTo( source, Spot.POSITION_X );
-						final double dy2 = target.diffTo( source, Spot.POSITION_Y );
-						final double dz2 = target.diffTo( source, Spot.POSITION_Z );
 
 						crossProduct( dx1, dy1, dz1, dx2, dy2, dz2, out );
 						final double deltaAlpha = Math.atan2( norm( out ), dotProduct( dx1, dy1, dz1, dx2, dy2, dz2 ) );
 						final double angleSpeed = deltaAlpha / target.diffTo( source, Spot.POSITION_T );
 
-						final double angleXY = Math.atan2( dy2, dx2 );
-						final double angleYZ = Math.atan2( dz2, dy2 );
-						final double angleZX = Math.atan2( dx2, dz2 );
-
 						featureModel.putEdgeFeature( edge, DIRECTIONAL_CHANGE_RATE, Double.valueOf( angleSpeed ) );
-						featureModel.putEdgeFeature( edge, ABSOLUTE_ANGLE_XY, Double.valueOf( angleXY ) );
-						featureModel.putEdgeFeature( edge, ABSOLUTE_ANGLE_YZ, Double.valueOf( angleYZ ) );
-						featureModel.putEdgeFeature( edge, ABSOLUTE_ANGLE_ZX, Double.valueOf( angleZX ) );
 					}
 
 				}
