@@ -11,7 +11,7 @@
 
 	<groupId>sc.fiji</groupId>
 	<artifactId>TrackMate_trackanalysis</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>1.0.0</version>
 
 	<name>TrackMate Track Analysis</name>
 	<description>Basic track analysis, plugged as TrackMate modules.</description>
@@ -64,7 +64,7 @@
 	<scm>
 		<connection>scm:git:git://github.com/tinevez/TrackMate-TrackAnalysis</connection>
 		<developerConnection>scm:git:git@github.com:tinevez/TrackMate-TrackAnalysis</developerConnection>
-		<tag>HEAD</tag>
+		<tag>TrackMate_trackanalysis-1.0.0</tag>
 		<url>scm:git:git@github.com:tinevez/TrackMate-TrackAnalysis</url>
 	</scm>
 	<issueManagement>
