@@ -11,7 +11,7 @@
 
 	<groupId>sc.fiji</groupId>
 	<artifactId>TrackMate_trackanalysis</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>1.0.1-SNAPSHOT</version>
 
 	<name>TrackMate Track Analysis</name>
 	<description>Basic track analysis, plugged as TrackMate modules.</description>
